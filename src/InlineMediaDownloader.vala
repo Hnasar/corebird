@@ -47,13 +47,16 @@ namespace InlineMediaDownloader {
     } else if (url.has_prefix("http://i.imgur.com")) {
       yield load_inline_media (t, url);
     } else if (url.has_prefix("http://d.pr/i/") || url.has_prefix("http://ow.ly/i/") ||
-               url.has_prefix("https://vine.co/v/") || url.has_prefix("http://tmblr.co/")) {
+               url.has_prefix("http://tmblr.co/")) {
       yield two_step_load (t, url, "<meta property=\"og:image\" content=\"(.*?)\"", 1);
     } else if (url.has_prefix("http://pbs.twimg.com/media/")) {
       yield load_inline_media (t, url);
     } else if (url.has_prefix("http://twitpic.com/")) {
       yield two_step_load (t, url,
                           "<meta name=\"twitter:image\" value=\"(.*?)\"", 1);
+    } else if (url.has_prefix ("https://vine.co/v/")) {
+      yield extract_content_url (t, url, "<meta property=\"og:image\" content=\"(.*?)\"", 1,
+                                         "<meta property=\"twitter:player:stream\" content=\"(.*?)\"", 1);
     } else {
       debug ("Not downloadable media: %s", url);
     }
@@ -69,10 +72,44 @@ namespace InlineMediaDownloader {
         MatchInfo info;
         regex.match (back, 0, out info);
         string real_url = info.fetch (match_index);
-        if(real_url != null)
+        if (real_url != null)
           load_inline_media.begin (t, real_url);
       } catch (GLib.RegexError e) {
         critical ("Regex Error(%s): %s", regex_str, e.message);
+      }
+    });
+  }
+
+  private async void extract_content_url (Tweet  t,
+                                          string first_url,
+                                          string thumb_regex,
+                                          int    thumb_match_index,
+                                          string content_regex,
+                                          int    content_match_index) {
+    /*
+       - Download the first_url website
+       - download and save the thumbnail
+       - extract the content_url
+       - set the content_url as the tweet's media
+     */
+    var msg = new Soup.Message ("GET", first_url);
+    session.queue_message (msg, (_s, _msg) => {
+      string back = (string)_msg.response_body.data;
+      try {
+        var regex = new GLib.Regex (thumb_regex, 0);
+        MatchInfo info;
+        regex.match (back, 0, out info);
+        string real_url = info.fetch (thumb_match_index);
+        if (real_url != null) {
+          load_inline_media.begin (t, real_url, () => {
+            regex = new GLib.Regex (content_regex, 0);
+            regex.match (back, 0, out info);
+            string content_url = info.fetch (content_match_index);
+            t.media = content_url;
+          });
+        }
+      } catch (GLib.RegexError e) {
+        critical ("Regex Error(%s): %s", thumb_regex, e.message);
       }
     });
   }
