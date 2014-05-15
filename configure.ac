@@ -14,15 +14,9 @@ AC_PROG_INSTALL
 IT_PROG_INTLTOOL([0.40])
 
 
-# Vala Packages {{{
-pkg_modules="gtk+-3.0 >= 3.12
-             glib-2.0 >= 2.40
-             rest-0.7
-             libsoup-2.4
-             gee-0.8
-             json-glib-1.0
-             sqlite3"
-PKG_CHECK_MODULES(CB, [$pkg_modules])
+AC_PATH_PROG(GLIB_COMPILE_RESOURCES, glib-compile-resources)
+
+
 CB_VALA_FLAGS=" \
   --pkg gtk+-3.0 \
   --pkg json-glib-1.0 \
@@ -36,13 +30,7 @@ CB_VALA_FLAGS=" \
   --vapidir=../vapi/ \
   --thread \
   --enable-checking"
-# }}}
 
-AC_SUBST(CB_CFLAGS)
-AC_SUBST(CB_LIBS)
-AC_SUBST(CB_VALA_FLAGS)
-
-AC_PATH_PROG(GLIB_COMPILE_RESOURCES, glib-compile-resources)
 
 
 
@@ -54,9 +42,51 @@ AM_CONDITIONAL([ENABLE_CATALOG], [ test "$enable_catalog" = "yes" ])
 AC_ARG_ENABLE(debug, AS_HELP_STRING([--enable-debug], [Enable debugging]),, enable_debug=no)
 AM_CONDITIONAL([ENABLE_DEBUG], [ test "$enable_debug" = "yes"])
 
+# --enable-vine
+AC_ARG_ENABLE(vine, AS_HELP_STRING([--enable-vine], [Enable vine support]),, enable_vine=no)
+AM_CONDITIONAL([ENABLE_VINE], [ test "$enable_vine" = "yes"])
+
 if test "$enable_debug" = "yes"; then
   CB_VALA_FLAGS="$CB_VALA_FLAGS -D DEBUG"
 fi
+
+if test "$enable_vine" = "yes"; then
+  CB_VALA_FLAGS="$CB_VALA_FLAGS \
+                 -D VINE \
+                 --pkg gstreamer-0.10 \
+                 --pkg gstreamer-interfaces-0.10 \
+                 --pkg gdk-x11-3.0"
+fi
+
+
+
+
+
+# Vala Packages {{{
+pkg_modules="gtk+-3.0 >= 3.12
+             glib-2.0 >= 2.40
+             rest-0.7
+             libsoup-2.4
+             gee-0.8
+             json-glib-1.0
+             sqlite3"
+
+if test "$enable_vine" = "yes"; then
+  pkg_modules="$pkg_modules gstreamer-0.10 gstreamer-interfaces-0.10"
+fi
+
+
+PKG_CHECK_MODULES(CB, [$pkg_modules])
+
+
+
+# }}}
+
+AC_SUBST(CB_CFLAGS)
+AC_SUBST(CB_LIBS)
+AC_SUBST(CB_VALA_FLAGS)
+
+
 
 
 GLIB_GSETTINGS
@@ -103,4 +133,5 @@ echo "
            C Compiler: ${CC} ${CFLAGS}
               Catalog: $enable_catalog
             Debugging: $enable_debug
+                 Vine: $enable_vine
 "

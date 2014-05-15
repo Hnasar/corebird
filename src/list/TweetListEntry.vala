@@ -195,8 +195,15 @@ public class TweetListEntry : ITwitterItem, ListBoxRow {
   }
 
   private void inline_media_button_clicked_cb () {
-    ImageDialog id = new ImageDialog(window, tweet.media);
-    id.show_all();
+    if (tweet.media.has_prefix ("/")) {
+      /* Local file, i.e. image. */
+      ImageDialog id = new ImageDialog(window, tweet.media);
+      id.show_all();
+    } else {
+      message (tweet.media);
+      var video_dialog = new VideoDialog (window, tweet.media);
+      video_dialog.show_all ();
+    }
   }
 
   static construct {

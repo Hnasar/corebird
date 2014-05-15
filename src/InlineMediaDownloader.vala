@@ -54,7 +54,8 @@ namespace InlineMediaDownloader {
     } else if (url.has_prefix("http://twitpic.com/")) {
       yield two_step_load (t, url,
                           "<meta name=\"twitter:image\" value=\"(.*?)\"", 1);
-    } else if (url.has_prefix ("https://vine.co/v/")) {
+    } else if (url.has_prefix ("https://vine.co/v/") ||
+               url.has_prefix ("http://vine.co/v/")) {
       yield extract_content_url (t, url, "<meta property=\"og:image\" content=\"(.*?)\"", 1,
                                          "<meta property=\"twitter:player:stream\" content=\"(.*?)\"", 1);
     } else {
